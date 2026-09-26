@@ -8,7 +8,7 @@
 [![X](https://img.shields.io/badge/X-@thenavidm-black?logo=x)](https://x.com/thenavidm)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-thenavidm-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/thenavidm)
 
-Mastodon MCP server and CLI for Claude Code and AI agents. 76 tools for posting, editing, threads, timelines, search, lists, notifications and following, across any instance.
+Mastodon MCP server and CLI for Claude Code, Codex and AI agents. 76 tools for posting, editing, threads, timelines, search, lists, notifications and following, across any instance.
 
 One install gives you both surfaces, the same 76 tools under the same names,
 reading one array of tool definitions so neither can drift from the other.
@@ -868,6 +868,20 @@ An MCP server is a standard way to give an AI assistant real access to a tool,
 so it can act rather than guess. You install it once, your assistant gains the
 tools, and it works in Claude, Cursor, ChatGPT and anything else that speaks the
 protocol. You never call the tools yourself, you ask in plain language.
+
+</details>
+
+<details>
+<summary><b>What is the CLI?</b></summary>
+
+`mastodon-cli` is the same program as the MCP server, run as commands. AI agents that run commands, like Claude Code, Codex and OpenCode, use it on their own, and you can type the same commands in a terminal, a script or a cron job. Every tool is a command with dashes, so `get_home_timeline` runs as `mastodon-cli get-home-timeline`.
+
+</details>
+
+<details>
+<summary><b>Should I use the MCP server or the CLI?</b></summary>
+
+Use the MCP server in an app with no terminal, like Claude Desktop's chat. Use the CLI anywhere commands run: an agent like Claude Code, Codex or OpenCode, a script or a cron job. The MCP server sends its full tool list to the model on every turn, and the CLI costs nothing until it runs.
 
 </details>
 
