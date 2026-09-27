@@ -142,7 +142,7 @@ All 76 with their arguments are in [section 6](#6-tools).
 | 2 | [Install](#2-install) | Every client and the shell, copy and paste |
 | 3 | [Connect your account](#3-connect-your-account) | One command, and what it does |
 | 4 | [Several accounts](#4-several-accounts) | Personal and project, different servers |
-| 5 | [What it costs to have connected](#5-what-it-costs-to-have-connected) | ~17,500 tokens a turn, or nothing |
+| 5 | [What it costs to have connected](#5-what-it-costs-to-have-connected) | Measured in Claude Code, and how to spend less |
 | 6 | [Tools](#6-tools) | All 76, with arguments |
 | 7 | [Writing safely](#7-writing-safely) | Why posting asks twice |
 | 8 | [Writing statuses](#8-writing-statuses) | Limits, media, warnings, editing |
@@ -456,66 +456,40 @@ export MASTODON_ACCOUNTS='[
 
 ## 5. What it costs to have connected
 
-Both surfaces carry the same 76 tools. They differ in when you pay for them.
+Both surfaces are the same program with the same 76 tools. The
+difference is when the model pays for them. Measured in Claude Code:
 
-| What you pay | MCP server | CLI |
+| | MCP server | CLI |
 |---|---|---|
-| Loaded every turn | **~17,500 tokens** | nothing |
-| Loaded when Mastodon comes up | nothing more | ~2,400, once |
-| Works on claude.ai and mobile | yes | no, there is no shell there |
-| Works in a script, cron or CI | no | yes |
-| You invoke it by | asking in plain language | typing a command |
+| Every message, with every tool loaded | 24,400 tokens | nothing |
+| Every message, Claude Code's default | 1,700 tokens | nothing |
+| When Mastodon comes up | nothing more, or the tools it picks | 3,600 tokens for `SKILL.md`, once |
+| 20 messages with Mastodon in 1, every tool loaded | 487,000 tokens | 3,600 tokens |
 
-An MCP server sends its whole tool list to the model on **every turn**, whether
-you mention Mastodon or not. That is the price of being connected at all,
-before you ask anything.
+Claude Code's [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search)
+is on by default: it sends only the tool names and the server instructions,
+and loads a tool's full definition when the model reaches for it. An app that
+loads every tool up front pays the first line on every message, whether
+Mastodon comes up or not. With the skill added, Claude Code also lists its
+one-line description, about 140 tokens.
 
-Over twenty turns where Mastodon comes up once, that is roughly 350,000 tokens
-against 2,400. When the whole conversation is Mastodon, the gap closes and the
-server is the better experience, because you ask in plain language instead of
-remembering flags.
+Where the tokens go, with every tool loaded:
 
-### How that was measured
-
-Not estimated. A real handshake against the built server, tokenised:
-
-```bash
-printf '%s\n%s\n' \
-  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"1"}}}' \
-  '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
-  | mastodon-mcp
-```
-
-The `tools/list` reply serialises to 77,183 characters, which is 17,110 tokens.
-The server instructions returned by `initialize` add 428. Counted with
-`gpt-tokenizer`, so treat it as the right order of magnitude rather than
-Claude's exact arithmetic.
-
-### Where the 17,500 goes
-
-Worth knowing, because it is mostly not something anyone can write away:
-
-| What the tokens are | Share |
+| Part of the tool list | Share |
 |---|---|
-| JSON Schema structure: types, required lists, nesting | **59%** |
+| JSON Schema structure: types, required lists, nesting | 59% |
 | Argument descriptions | 29% |
 | Tool descriptions | 12% |
 
-Ten thousand of those tokens are the protocol serialising every tool as JSON
-Schema. Any MCP server with this many tools pays the same. The 41% that is
-prose is what makes the tools usable without guessing.
+To spend less, turn the server off when you are not using it, which in Claude
+Code is the `/mcp` panel. `MASTODON_READ_ONLY=1` takes the 37 write tools off the list, leaving 39.
+Or install the CLI and add the server on the days it earns its place.
 
-### Spending less
-
-**Turn the server off when you are not using Mastodon.** In Claude Code that is
-`@mastodon` to toggle, and every client has an equivalent.
-`MASTODON_READ_ONLY=1` drops it to the 39 reading tools, measured at 8,667
-tokens by the same handshake.
-
-**Or install the CLI and skip the server.** All 76 tools stay reachable, the
-standing cost falls to nothing, and an agent pays for the skill file
-(2,423 tokens) only once the subject comes up rather than every turn
-regardless. You can connect the server later on the days it earns its place.
+Measured on 2026-09-27 with Claude Code 2.1.257 on Claude Opus 5: one
+short prompt with and without the server connected, once with
+`ENABLE_TOOL_SEARCH=false` and once with the default, the difference read
+from the API's own usage figures. `SKILL.md` was measured the same way. Other
+apps and models count tokens a little differently.
 
 ## 6. Tools
 
@@ -881,7 +855,7 @@ protocol. You never call the tools yourself, you ask in plain language.
 <details>
 <summary><b>Should I use the MCP server or the CLI?</b></summary>
 
-Use the MCP server in an app with no terminal, like Claude Desktop's chat. Use the CLI anywhere commands run: an agent like Claude Code, Codex or OpenCode, a script or a cron job. The MCP server sends its full tool list to the model on every turn, and the CLI costs nothing until it runs.
+Use the MCP server in an app with no terminal, like Claude Desktop's chat. Use the CLI anywhere commands run: an agent like Claude Code, Codex or OpenCode, a script or a cron job. The MCP server's tools take up context on every message, and the CLI costs nothing until it runs.
 
 </details>
 
