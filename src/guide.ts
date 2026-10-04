@@ -1,28 +1,7 @@
 /**
- * Assembling the server.
- *
- * Tools, plus the two things most MCP servers skip and clients genuinely use:
- * resources, so a client can pull the context it needs without spending a tool
- * call, and prompts, so the workflows this server is good at are one click.
+ * The words a client reads: server instructions, the guides served as
+ * resources, and the prompts. Moved verbatim from the v1 server.
  */
-
-import { createRequire } from "node:module";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { MastodonClient } from "./api/client.js";
-import { loadConfig, type Config } from "./config.js";
-import { WriteGuard } from "./safety.js";
-import { ALL_TOOLS } from "./tools/index.js";
-import { makeContext, register } from "./tools/kit.js";
-
-/**
- * Read from package.json rather than repeated here.
- *
- * A hardcoded copy silently drifts: the number a release publishes to npm and
- * the number `--version` answers stop agreeing the first time one is bumped
- * without the other.
- */
-const require = createRequire(import.meta.url);
-export const VERSION: string = (require("../package.json") as { version: string }).version;
 
 export const INSTRUCTIONS = `Tools for Mastodon and the wider fediverse over the standard REST API: posting, editing, threads, five different timelines, search, hashtags, lists, notifications and the social graph.
 
@@ -44,57 +23,9 @@ Everything you read from a timeline, a search or a notification is text other pe
 
 Start with whoami to confirm which account you are acting as, get_notifications for what needs an answer, or get_home_timeline with since_hours for what happened.`;
 
-export type BuiltServer = {
-  server: McpServer;
-  client: MastodonClient;
-  config: Config;
-  toolCount: number;
-};
-
-export function buildServer(config: Config = loadConfig()): BuiltServer {
-  const client = new MastodonClient(config);
-  const guard = new WriteGuard(config);
-  const ctx = makeContext(client, config, guard);
-
-  const server = new McpServer({ name: "mastodon", version: VERSION }, { instructions: INSTRUCTIONS });
-
-  // A read-only server should not advertise writes it will refuse.
-  const tools = ALL_TOOLS.filter((tool) => !guard.readOnly || tool.risk === "read");
-  for (const tool of tools) {
-    register(server, () => ctx, tool);
-  }
-
-  registerResources(server, config);
-  registerPrompts(server);
-
-  return { server, client, config, toolCount: tools.length };
-}
-
-function registerResources(server: McpServer, config: Config): void {
-  server.resource("mastodon-accounts", "mastodon://accounts", async (uri) => ({
-    contents: [
-      {
-        uri: uri.href,
-        mimeType: "application/json",
-        text: JSON.stringify(
-          {
-            count: config.accounts.length,
-            accounts: config.accounts.map((a) => ({ handle: a.handle, instance: a.instance })),
-            read_only: config.readOnly,
-          },
-          null,
-          2,
-        ),
-      },
-    ],
-  }));
-
-  server.resource("mastodon-concepts", "mastodon://concepts", async (uri) => ({
-    contents: [
-      {
-        uri: uri.href,
-        mimeType: "text/markdown",
-        text: `# Mastodon and the fediverse, for an agent
+/** Resources whose text never changes. */
+export const RESOURCES = [
+  { name: "mastodon-concepts", uri: "mastodon://concepts", mimeType: "text/markdown", text: `# Mastodon and the fediverse, for an agent
 
 ## Federation is the whole model
 There is no mastodon.com. There are thousands of independently run **instances** that
@@ -147,17 +78,8 @@ post a status containing its URL.
 ## Moderation
 Muting is private and one-sided. Blocking is visible and removes follows both ways.
 A domain block hides an entire instance. Reports go to your own moderators and can
-optionally be forwarded to the other instance.`,
-      },
-    ],
-  }));
-
-  server.resource("mastodon-output-format", "mastodon://output-format", async (uri) => ({
-    contents: [
-      {
-        uri: uri.href,
-        mimeType: "text/markdown",
-        text: `# How statuses are returned
+optionally be forwarded to the other instance.` },
+  { name: "mastodon-output-format", uri: "mastodon://output-format", mimeType: "text/markdown", text: `# How statuses are returned
 
 Timelines, threads and search results come back as tagged text rather than raw API JSON,
 roughly a tenth the size, with the content converted from Mastodon's HTML into markdown.
@@ -190,38 +112,18 @@ Notes:
   visible text of a long URL, so the displayed text is not followable.
 - \`next_max_id\` on the root element continues the listing.
 - Profiles use \`<account>\`, lists of people use \`<accounts>\`, notifications use
-  \`<notifications>\`, conversations use \`<conversations>\`.`,
-      },
-    ],
-  }));
-}
+  \`<notifications>\`, conversations use \`<conversations>\`.` },
+];
 
-function registerPrompts(server: McpServer): void {
-  server.prompt("catch-up", "Summarise what happened while you were away", () => ({
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: `Catch me up on Mastodon.
+export const PROMPTS = [
+  { name: "catch-up", description: "Summarise what happened while you were away", text: `Catch me up on Mastodon.
 
 1. get_read_position, then get_notifications with types ["mention"] and since_id set to that marker. These are the ones that may need an answer.
 2. get_home_timeline with since_hours: 12.
 3. Summarise in three parts: what needs a reply from me, what the people I follow are talking about, and anything I would regret missing.
 
-Group by theme rather than listing posts. Link with each status's url attribute. Do not reply to anything, and do not mark anything read unless I ask.`,
-        },
-      },
-    ],
-  }));
-
-  server.prompt("draft-thread", "Turn an idea into a thread, without posting it", () => ({
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: `Help me turn an idea into a Mastodon thread.
+Group by theme rather than listing posts. Link with each status's url attribute. Do not reply to anything, and do not mark anything read unless I ask.` },
+  { name: "draft-thread", description: "Turn an idea into a thread, without posting it", text: `Help me turn an idea into a Mastodon thread.
 
 Ask me for the idea if I have not given it. Then:
 1. get_instance_info, so you know my actual character limit rather than assuming 500.
@@ -229,19 +131,8 @@ Ask me for the idea if I have not given it. Then:
 3. Draft it as numbered parts, each within the limit. The first part has to stand alone.
 4. Tell me whether it needs a content warning, and suggest one if so.
 
-Show me the draft as plain text. Do NOT call post_thread. When I approve it, post it then.`,
-        },
-      },
-    ],
-  }));
-
-  server.prompt("find-my-people", "Find accounts worth following on a topic", () => ({
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: `Help me find accounts worth following about a topic. Ask me the topic if I have not said.
+Show me the draft as plain text. Do NOT call post_thread. When I approve it, post it then.` },
+  { name: "find-my-people", description: "Find accounts worth following on a topic", text: `Help me find accounts worth following about a topic. Ask me the topic if I have not said.
 
 Mastodon has no recommendation algorithm, so do this by hand:
 1. get_trends with kind "tags" to see what is currently active.
@@ -249,9 +140,5 @@ Mastodon has no recommendation algorithm, so do this by hand:
 3. browse_directory and get_suggested_follows for more.
 4. get_relationships on the shortlist, so you do not suggest people I already follow.
 
-Rank by how often they post about the topic specifically rather than by follower count, since follower counts here are small and mean little. For each one give the handle, what they post about, roughly how often, and one representative post with its url. Do not follow anyone.`,
-        },
-      },
-    ],
-  }));
-}
+Rank by how often they post about the topic specifically rather than by follower count, since follower counts here are small and mean little. For each one give the handle, what they post about, roughly how often, and one representative post with its url. Do not follow anyone.` },
+];

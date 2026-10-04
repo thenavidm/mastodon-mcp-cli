@@ -6,12 +6,12 @@ For agents editing this repository. Users read the README. Driving the server is
 ## Layout
 
 ```
+src/app.ts      the Slipway app: tools, settings, doctor, login, logout. Slipway owns both surfaces, the guard and the audit log
+src/guide.ts    server instructions, resources and prompts
 src/api/        client, errors
 src/auth/       app registration and sign-in, per instance
 src/content/    status text, media, content warnings
 src/tools/      one module per group, registered in tools/index.ts
-src/safety.ts   read-only, confirm, audit
-src/doctor.ts   the troubleshooting command
 ```
 
 ## Non-negotiables
@@ -23,9 +23,10 @@ and the Contributors panel reads 0.
 **Writes are on by default.** `MASTODON_READ_ONLY=1` is the opt-out and it works
 by not registering the write tools, not by refusing at call time.
 
-**`confirm: true` on operations that reach other people only.** Posting,
-threads, deleting, blocking, reporting. Not favourites, boosts, follows or
-mutes: each is one click to undo, and confirming everything trains the reflex
+**Approval on operations that reach other people only.** Posting, threads,
+editing, deleting, blocking, reporting, poll votes. Over MCP a person approves
+each in the client; `confirm: true` counts only where the client cannot ask.
+Not favourites, boosts, follows or mutes: each is one click to undo, and confirming everything trains the reflex
 that makes the confirmation on a delete worthless.
 
 **There is no developer portal.** Mastodon has no central place to register an
@@ -37,8 +38,10 @@ carries an `auth/` directory the other servers do not need.
 counts and available features vary per instance and are read from
 `/api/v1/instance` rather than assumed. Never hardcode 500 characters.
 
-**Every anticipated failure carries a message the model can act on.** Check how
-the SDK surfaces errors before writing thirty of them.
+**Every anticipated failure is a `MastodonError`** from `api/errors.ts`, with a
+message the model can act on. Slipway maps its HTTP status to the exit code and
+keeps the message. A plain `Error` keeps its message too, but exits 1,
+unexpected, unless its words match a known failure.
 
 ## Before claiming it works
 

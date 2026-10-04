@@ -2,9 +2,28 @@
 
 | Component | Version | Last Updated |
 |-----------|---------|--------------|
-| mastodon-mcp-cli | 1.1.3 | 2026-10-04 |
+| mastodon-mcp-cli | 2.0.0 | 2026-10-05 |
+| @thenavidm/slipway | 0.1.6 | 2026-10-05 |
 
 ---
+
+## 2.0.0, 2026-10-05
+
+Built on [Slipway](https://github.com/thenavidm/slipway) 0.1.6. The 76 tools keep their names and arguments, and every difference below was measured against 1.1.3 before release.
+
+- **A person approves each post, edit, delete, block, report and poll vote over MCP.** Claude Code (2.1.246 and later) shows its own prompt for each one, and a client that can show forms asks with an approval form whose one box starts unticked. Approvals are signed, bound to the exact call and work once. Where a client can do neither, the model's `confirm: true` still counts, and `MASTODON_CONFIRM=model` makes it enough everywhere, for an agent with no person to ask. The audit log records who approved each write.
+- **A smaller tool list.** 21,580 tokens in Claude Code with every tool loaded, down from 24,370: the per-tool `$schema` line, an `execution` field and `additionalProperties: false` are gone. The last one advertised strict input while unknown keys were dropped anyway; the schema now says what happens.
+- **Exit codes follow the house contract everywhere.** An unknown command, a write in read-only mode, and `login` or `logout` without a name exit 2 instead of 1, and `doctor` with nothing configured exits 10 instead of 1. 1 now means an unexpected error, and an instance that cannot be reached still exits 5.
+- **Cheaper through the CLI.** In Codex, finding the command that edits a published status took 84,248 input tokens instead of 108,296 (median of five): `which <words>` finds a command without the full list, and 2.0.0 got there in three commands every time where 1.1.3 needed up to six. Over MCP the same task read about 77,800 on both.
+- **`install <client>`** adds the server to Claude Code, Codex, Claude Desktop, Cursor, VS Code or Gemini CLI in each one's own format, naming only the settings that connect an account.
+- **Less work to start.** The entry turns on Node's compile cache, and the server spends 211 ms of CPU before its first answer where 1.1.3 spent 247 (median of 21 runs, taking turns on one busy Mac). npx installs 4 dependencies instead of 94.
+- **`--help` lists every setting the server reads**, Slipway's own included, `login <instance>` and `logout` show what they take, and restored tests keep the README and `--help` in step with the code.
+- **`doctor` asks the instance every time, as before, and says what it found.** An instance that never answered passed as reachable on the fallback limits and was told to sign in again; it now fails as unreachable, and `login` is offered only when the instance refused the token.
+- **README fixes.** The exit-code example script no longer reads the status of `!`, the HTTP port is documented as the 8787 the server always used, `/health` is described as it answers, the release workflow attaches the desktop extension the README sends people to, and images load from cdn.navid.me. THIRD_PARTY_NOTICES.md lists the production dependencies' licenses.
+
+### Upgrading
+
+Node 22 or newer. Scripts keep working for success, usage errors and missing setup; a script that treated exit 1 as "unknown command" or "read-only" should read 2. Over MCP, expect an approval prompt or form for each post; a headless agent that should post with `confirm: true` alone needs `MASTODON_CONFIRM=model`. A script that pipes JSON-RPC into the server must keep stdin open until it reads the answer: the server now stops when its input ends, as the MCP stdio binding asks. Over HTTP, `GET /health` returns the name, version and tool count, and no longer tells anyone who can reach it how many accounts are connected. Two terminal screens grew: the general help by 108 tokens, for `which`, `install`, the flags, the exit codes and the safety settings it now lists, and the command list by 24, for the lines that point to `which` and `--help`. `SKILL.md` is 54 tokens longer, for the approval rule, `which` and the full exit codes.
 
 ## 1.1.3, 2026-10-04
 

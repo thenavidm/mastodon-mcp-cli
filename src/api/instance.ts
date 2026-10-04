@@ -30,6 +30,8 @@ export type InstanceLimits = {
   videoSizeLimit: number;
   /** True when the software is Mastodon proper rather than a compatible server. */
   looksLikeMastodon: boolean;
+  /** False when neither instance endpoint answered, so every limit above is the fallback. */
+  answered: boolean;
 };
 
 /** Sane values for a server that answers neither instance endpoint. */
@@ -83,6 +85,7 @@ export async function instanceLimits(
     imageSizeLimit: num(media.image_size_limit, FALLBACK.imageSizeLimit),
     videoSizeLimit: num(media.video_size_limit, FALLBACK.videoSizeLimit),
     looksLikeMastodon: !/pleroma|akkoma|gotosocial|misskey|firefish/i.test(String(data?.version ?? "")),
+    answered: data !== undefined,
   };
 
   cache.set(account.instance, limits);

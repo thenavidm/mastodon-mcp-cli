@@ -9,7 +9,7 @@ which is why setup here is one command instead of five manual steps.
 
 ## Prerequisites
 
-Node 20 or newer. Nothing else.
+Node 22 or newer. Nothing else.
 
 ## Install and sign in
 

@@ -1,4 +1,4 @@
-<img src="https://cdn.navid.media/connectors/mastodon-icon.png" alt="Mastodon" width="88">
+<img src="https://cdn.navid.me/connectors/mastodon-icon.png" alt="Mastodon" width="88">
 
 # Mastodon MCP Server & CLI
 
@@ -17,9 +17,9 @@ Setup is one command. Mastodon has no central developer portal, so this register
 
 Instance limits are read from the instance, so character counts and poll options are correct wherever you are.
 
-Built and maintained by [Navid Moazzez](https://navid.me?utm_source=github&utm_medium=referral&utm_campaign=mastodon-mcp-cli&utm_content=readme).
+Built and maintained by [Navid Moazzez](https://navid.me?utm_source=github&utm_medium=referral&utm_campaign=mastodon-mcp-cli&utm_content=readme). Built on [Slipway](https://github.com/thenavidm/slipway), which turns one definition of each tool into the MCP server and the CLI.
 
-<img src="https://cdn.navid.media/repos/mastodon-mcp.gif?v=1" alt="Claude Code using the Mastodon MCP server" width="520">
+<img src="https://cdn.navid.me/repos/mastodon-mcp.gif" alt="Claude Code using the Mastodon MCP server" width="520">
 
 ## Two ways to use it
 
@@ -57,25 +57,25 @@ A script branches on the number instead of parsing the message:
 | Code | Means |
 |---|---|
 | `0` | it worked |
-| `1` | an unknown command |
-| `2` | you typed it wrong, or a write was refused for want of `--confirm` |
+| `1` | an unexpected error, worth an issue |
+| `2` | you typed it wrong, or the guard refused a write: a missing or bad flag, an unknown command, a post without `--confirm` |
 | `3` | not found |
-| `4` | the instance rejected the token |
-| `5` | the instance failed |
+| `4` | the instance rejected the token or the permission |
+| `5` | the instance failed or could not be reached |
 | `7` | rate limited |
 | `10` | nothing is configured yet: run `mastodon-mcp login <your-instance>` |
 
 ```bash
-if ! mastodon-cli post-status --status "$MSG" --confirm; then
-  case $? in
-    10) echo "not set up yet" >&2; exit 1 ;;
-    2)  echo "bad arguments, not retrying" >&2; exit 1 ;;
-    *)  echo "failed, will retry" >&2 ;;
-  esac
-fi
+mastodon-cli post-status --status "$MSG" --confirm
+case $? in
+  0) ;;
+  2|4|10) echo "fix the command or the setup, not retrying" >&2; exit 1 ;;
+  5|7) echo "the instance failed or is busy, will retry" >&2 ;;
+  *) echo "unexpected, see the error" >&2; exit 1 ;;
+esac
 ```
 
-### MCP server, for AI agents
+### MCP server, for your AI app
 
 `mastodon-mcp` is what Claude Code, Claude Desktop, Cursor and the rest launch.
 You never run it by hand:
@@ -88,7 +88,9 @@ claude mcp add mastodon -- npx -y @thenavidm/mastodon-mcp-cli
 Then just ask: _"what did my timeline argue about while I was asleep?"_
 
 The `login` step stores the token, so the MCP entry needs no environment
-variables. Every other client is in [section 2](#2-install).
+variables. Every other client is in [section 2](#2-install). Each post, edit,
+delete, block, report and poll vote waits for your approval in the client, as
+[section 7](#7-writing-safely) explains.
 
 ### Which one
 
@@ -173,7 +175,7 @@ The second one is the point. Mastodon lets you edit a published post and keeps a
 
 The long version, every step with what to do when one fails, is in [INSTALL.md](INSTALL.md).
 
-Node 20 or newer. Nothing else.
+Node 22 or newer. Nothing else.
 
 ### Claude Code
 
@@ -202,6 +204,8 @@ npx -y -p @thenavidm/mastodon-mcp-cli mastodon-cli
 
 `mastodon-mcp` is the server binary and `mastodon-cli` is the same tools as
 shell commands. Both come from the one package.
+
+`mastodon-cli install claude-code` (or `codex`, `claude-desktop`, `cursor`, `vscode`, `gemini`) adds the server to a client in its own format; add `--dry-run` to see the change first.
 
 ### Claude Desktop
 
@@ -306,7 +310,7 @@ MASTODON_HTTP_TOKEN=$(openssl rand -hex 32) \
 mastodon-mcp --http
 ```
 
-Binds `127.0.0.1` by default. An access token reaches your whole account, so put it behind a reverse proxy with TLS before you change `MASTODON_HTTP_HOST`, and set `MASTODON_HTTP_TOKEN` so the endpoint is not open. `GET /health` returns the tool and account count without authentication.
+Binds `127.0.0.1` by default, and will not start on any other address without `MASTODON_HTTP_TOKEN`. An access token reaches your whole account, so put it behind a reverse proxy with TLS before you change `MASTODON_HTTP_HOST`. `GET /health` returns the name, version and tool count without authentication.
 
 ### Check it worked
 
@@ -459,12 +463,12 @@ export MASTODON_ACCOUNTS='[
 Both surfaces are the same program with the same 76 tools. The
 difference is when the model pays for them. Measured in Claude Code:
 
-| | MCP server | CLI |
+| Cost | MCP server | CLI |
 |---|---|---|
-| Every message, with every tool loaded | 24,400 tokens | nothing |
-| Every message, Claude Code's default | 1,700 tokens | nothing |
-| When Mastodon comes up | nothing more, or the tools it picks | 3,600 tokens for `SKILL.md`, once |
-| 20 messages with Mastodon in 1, every tool loaded | 487,000 tokens | 3,600 tokens |
+| Every message, with every tool loaded | 21,600 tokens | nothing |
+| Every message, Claude Code's default | 1,670 tokens | nothing |
+| When Mastodon comes up | nothing more, or the tools it picks | 3,630 tokens for `SKILL.md`, once |
+| 20 messages with Mastodon in 1, every tool loaded | 432,000 tokens | 3,630 tokens |
 
 Claude Code's [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search)
 is on by default: it sends only the tool names and the server instructions,
@@ -485,11 +489,20 @@ To spend less, turn the server off when you are not using it, which in Claude
 Code is the `/mcp` panel. `MASTODON_READ_ONLY=1` takes the 37 write tools off the list, leaving 39.
 Or install the CLI and add the server on the days it earns its place.
 
-Measured on 2026-09-27 with Claude Code 2.1.257 on Claude Opus 5: one
+Measured on 2026-10-05 with Claude Code 2.1.286 on Claude Opus 5.5: one
 short prompt with and without the server connected, once with
 `ENABLE_TOOL_SEARCH=false` and once with the default, the difference read
-from the API's own usage figures. `SKILL.md` was measured the same way. Other
-apps and models count tokens a little differently.
+from the API's own usage figures. `SKILL.md` was measured the same way, and the
+shares were counted with OpenAI's o200k tokenizer. Other apps and models count
+tokens a little differently.
+
+Against 1.1.3, measured the same day: every tool loaded costs 21,580 tokens
+instead of 24,370, tool search the same, and `SKILL.md` 54 more for the approval
+rule, `which` and the full exit codes. In Codex 0.159.3 on gpt-6.1-sol, the same
+task, "find the command that edits a published status and the flags it
+requires", read a median of 84,248 input tokens on 2.0.0 against 108,296 on
+1.1.3 over the CLI (five runs each), where `which` found the command without
+the full list, and about 77,800 on both over MCP.
 
 ## 6. Tools
 
@@ -606,13 +619,15 @@ Three prompts: **catch-up**, **draft-thread**, **find-my-people**.
 
 A status is public the instant it lands, and federation means deleting it does not pull it back off the instances that already have it.
 
-So these refuse to run without `confirm: true`:
+So these need approval:
 
 `post_status`, `post_thread`, `edit_status`, `delete_status`, `update_profile`, `vote_poll`, `report`, `block_account`, `block_domain`, `clear_notifications`, `delete_list`
 
 `vote_poll` is on the list because a Mastodon vote cannot be changed or withdrawn. `report` is on it because it reaches human moderators.
 
-Favourites, boosts, follows and mutes are **not** guarded. Each is one call to undo, and a confirmation on every favourite would only train the model to pass `confirm` reflexively.
+In a terminal that is `--confirm`, which `--agent` never adds. Over MCP a person approves each call where the client can ask: Claude Code (2.1.246 and later) shows its own prompt, and a client that can show forms asks with an approval form whose one box starts unticked. Each approval is signed, bound to that exact call and works once. Where a client can do neither, the model's `confirm: true` counts, and it should pass it only when you asked for that exact action. `MASTODON_CONFIRM=model` makes `confirm: true` enough everywhere, for an agent with no person to ask, such as a scheduled job.
+
+Favourites, boosts, follows and mutes are **not** guarded. Each is one call to undo, and an approval on every favourite would only train you to click yes without reading, which is worse than not asking.
 
 ### Turning writes off entirely
 
@@ -622,7 +637,7 @@ MASTODON_ALLOW_DESTRUCTIVE=0 # keeps favourites and follows, blocks posting and 
 MASTODON_AUDIT_LOG=~/.mastodon-mcp/writes.jsonl
 ```
 
-The audit log is one JSON line per attempted write, allowed and blocked alike, written mode 0600.
+The audit log is one JSON line per attempted write, allowed and blocked alike, with who approved it: `person`, `client` or `flag`. It is written mode 0600.
 
 ### Prompt injection
 
@@ -729,11 +744,10 @@ Worth knowing before you point an agent at it.
 
 ```
 src/
-  index.ts              entry: stdio, --http, login, logout, doctor
+  index.ts              entry: both binaries, with Node's compile cache
+  app.ts                the Slipway app: tools, settings, doctor, login, logout
+  guide.ts              server instructions, resources and prompts
   config.ts             credentials, and which account acts
-  server.ts             tools, resources, prompts
-  safety.ts             the write guard and MCP annotations
-  doctor.ts             setup diagnosis, including OAuth scopes
 
   auth/
     login.ts            registers the app, runs OAuth, stores the token
@@ -757,7 +771,7 @@ src/
     discover.ts graph.ts notifications.ts
 ```
 
-Two dependencies: the MCP SDK and zod. No Mastodon client library: the API is plain REST and the parts that are actually hard, Link-header pagination and the HTML conversion, are not in the libraries anyway.
+Two dependencies: [Slipway](https://github.com/thenavidm/slipway), which serves the tools over MCP and the CLI with one write guard, and zod. No Mastodon client library: the API is plain REST and the parts that are actually hard, Link-header pagination and the HTML conversion, are not in the libraries anyway.
 
 **Pagination.** Mastodon returns no cursor in the body. It returns a `Link:` header carrying `max_id`, and following it is the only way past 40 results. Every listing here does.
 
@@ -802,7 +816,11 @@ If any of that is more than you want to hand an agent, `MASTODON_READ_ONLY=1` gi
 | `translate_status` 404s | The instance has no translation backend configured |
 | "Status is N characters" | Check `get_instance_info`; the limit is per instance |
 | Media upload times out | Large video. The id stays valid; retry the post with `media_ids` |
-| "will not run without confirm: true" | Working as intended. See [section 7](#7-writing-safely) |
+| "will not run without --confirm" | Working as intended. See [section 7](#7-writing-safely) |
+| Claude Code asks before every post | Expected: posting, editing, deleting, blocking and reporting wait for your approval |
+| `claude -p` will not post | Headless Claude Code refuses tools that need a person. Give that agent `MASTODON_CONFIRM=model` |
+| No approval form appears | The client cannot show forms, so the model's `confirm: true` counts, and only for an action you asked for |
+| A piped request gets no answer | Stdin closed before the answer. The MCP stdio binding stops a server when its input ends; keep stdin open until you read the answer, or use the CLI |
 | Edits, polls or trends missing | Not a Mastodon server. `get_instance_info` reports the software |
 
 ## Environment variables
@@ -819,15 +837,20 @@ If any of that is more than you want to hand an agent, `MASTODON_READ_ONLY=1` gi
 | `MASTODON_MCP_HOME` | `~/.mastodon-mcp` | Where the account store lives |
 | `MASTODON_READ_ONLY` | `0` | Hide every write from the tool list |
 | `MASTODON_ALLOW_DESTRUCTIVE` | `1` | `0` blocks posting, editing and deleting |
-| `MASTODON_AUDIT_LOG` | none | Append-only log of every attempted write |
+| `MASTODON_AUDIT_LOG` | none | Append-only log of every attempted write, and who approved it |
+| `MASTODON_CONFIRM` | `human` | `model` lets `confirm: true` alone approve over MCP, for an agent with no person to ask |
+| `MASTODON_TOOLSETS` | `all` | Comma-separated toolsets to turn on |
+| `MASTODON_SURFACE` | `full` | `search` lists three tools that find, describe and run the rest |
+| `MASTODON_TOOL_TIMEOUT_MS` | none | Give up on any tool after this long |
 | `MASTODON_REQUEST_TIMEOUT_MS` | `30000` | Per-request deadline |
 | `MASTODON_MIN_REQUEST_INTERVAL_MS` | `120` | Spacing between requests |
 | `MASTODON_MAX_RETRIES` | `3` | Retries on 429 and 5xx |
 | `MASTODON_USER_AGENT` | `mastodon-mcp` | User-Agent sent to the instance |
 | `MASTODON_LOGIN_PORT` | `33517` | Loopback port for the OAuth redirect |
-| `MASTODON_HTTP_PORT` | `8788` | For `--http` |
+| `MASTODON_HTTP_PORT` | `8787` | For `--http` |
 | `MASTODON_HTTP_HOST` | `127.0.0.1` | For `--http` |
-| `MASTODON_HTTP_TOKEN` | none | Bearer token required by `--http` |
+| `MASTODON_HTTP_TOKEN` | none | Bearer token required by `--http`; any address but localhost refuses to start without one |
+| `MASTODON_DEBUG` | `0` | `1` prints debug lines on stderr |
 
 ## Versions
 
@@ -907,9 +930,11 @@ your client's config and the audit log sits in your data directory.
 <details>
 <summary><b>Can it post without me asking?</b></summary>
 
-It posts when you ask it to. Posting, threads, deleting, blocking and reporting
-all require the model to pass `confirm: true`, which it sets after reading a
-description explaining what cannot be undone.
+It posts when you ask it to. Posting, threads, editing, deleting, blocking and
+reporting wait for your approval: Claude Code shows its own prompt for each one,
+and a client that can show forms asks with one. Where a client can do neither,
+the model's `confirm: true` counts, which is a speed bump against a careless
+call rather than a lock.
 
 Setting `MASTODON_READ_ONLY=1` removes every write tool from the list entirely,
 so the model cannot see or call them.
@@ -919,7 +944,7 @@ so the model cannot see or call them.
 <details>
 <summary><b>Can it delete something by accident?</b></summary>
 
-Deleting needs `confirm: true`. Worth knowing that a delete does not reach the
+Deleting needs your approval. Worth knowing that a delete does not reach the
 copies already federated to other instances, so a post that travelled will
 survive in places you cannot reach. Favourites, boosts and follows are not
 guarded, because each is one click to undo.
@@ -991,7 +1016,8 @@ If this is useful, star the repo and come say hi on [X](https://x.com/thenavidm)
 
 | Library | License | What it does |
 |---|---|---|
-| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | MIT | The MCP server and transports |
+| [Slipway](https://github.com/thenavidm/slipway) | Apache-2.0 | The MCP server and the CLI from one definition of each tool, with the write guard |
+| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | Apache-2.0 | The MCP protocol and transports, through Slipway |
 | [zod](https://github.com/colinhacks/zod) | MIT | Tool argument schemas and validation |
 
 ## License

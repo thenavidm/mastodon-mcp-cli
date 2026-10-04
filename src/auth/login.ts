@@ -175,7 +175,7 @@ export async function runLogin(argv: string[]): Promise<number> {
         "  --oob        print the URL and paste the code back, for a headless box\n" +
         "  --token=…    store a token you already made, skipping OAuth entirely\n",
     );
-    return 1;
+    return 2;
   }
 
   // Straight token path, for someone who already made an app by hand.

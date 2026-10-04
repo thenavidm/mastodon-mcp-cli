@@ -2,9 +2,9 @@
   "manifest_version": "0.2",
   "name": "mastodon",
   "display_name": "Mastodon",
-  "version": "1.1.3",
+  "version": "2.0.0",
   "description": "Mastodon MCP server for Claude Code and AI agents. 76 tools for posting, editing, threads, timelines, search, lists, notifications and following, across any instance.",
-  "long_description": "Connects Claude to Mastodon, on any instance.\n\nMastodon is federated, so an account is a token plus the instance that issued it. Paste your instance URL and an access token from that instance's Settings -> Development, and this connects. There is no central developer portal to visit.\n\nWrites are on. Anything public or irreversible - posting, editing, deleting, boosting, following, blocking - refuses to run until it is confirmed, and Read only hides every one of them.",
+  "long_description": "Connects Claude to Mastodon, on any instance.\n\nMastodon is federated, so an account is a token plus the instance that issued it. Paste your instance URL and an access token from that instance's Settings -> Development, and this connects. There is no central developer portal to visit.\n\nWrites are on. Anything public or irreversible, such as posting, editing, deleting, blocking and reporting, waits for your approval, and Read only hides every write.",
   "author": {
     "name": "Navid Moazzez",
     "url": "https://navid.me"
@@ -49,7 +49,7 @@
     "access_token": {
       "type": "string",
       "title": "Access token",
-      "description": "From that instance's Settings -> Development -> New application. Give it the read and write scopes, then copy \"Your access token\".",
+      "description": "From that instance's Settings -> Development -> New application. Give it the read, write and follow scopes, then copy \"Your access token\".",
       "sensitive": true,
       "required": true
     },
@@ -69,7 +69,7 @@
       "linux"
     ],
     "runtimes": {
-      "node": ">=20"
+      "node": ">=22"
     }
   }
 }
