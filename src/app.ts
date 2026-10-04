@@ -22,8 +22,8 @@ export const VERSION: string = (require("../package.json") as { version: string 
 const loginHint = (instance: string) => `Run \`mastodon-cli login ${instance.replace(/^https?:\/\//, "")}\`.`;
 
 /**
- * Network checks only run with `doctor --network`. The failure people actually
- * hit on Mastodon is a token missing the `write` scope: reads work, so
+ * The checks below ask the instance on every `doctor` (`doctorNetwork`). The
+ * failure people actually hit on Mastodon is a token missing the `write` scope: reads work, so
  * everything looks fine, and then the first post fails with a 403 that says
  * nothing about scopes. So the scopes are checked per account, and named.
  */
