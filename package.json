@@ -1,6 +1,6 @@
 {
   "name": "@thenavidm/mastodon-mcp-cli",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Mastodon MCP server and CLI for Claude Code and AI agents. 76 tools for posting, editing, threads, timelines, search, lists, notifications and following, across any instance.",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
     "build:mcpb": "bash desktop-extension/build.sh"
   },
   "dependencies": {
-    "@thenavidm/slipway": "^0.1.6",
+    "@thenavidm/slipway": "^0.1.17",
     "zod": "^4.2.0"
   },
   "devDependencies": {

@@ -850,6 +850,7 @@ If any of that is more than you want to hand an agent, `MASTODON_READ_ONLY=1` gi
 | `MASTODON_HTTP_PORT` | `8787` | For `--http` |
 | `MASTODON_HTTP_HOST` | `127.0.0.1` | For `--http` |
 | `MASTODON_HTTP_TOKEN` | none | Bearer token required by `--http`; any address but localhost refuses to start without one |
+| `MASTODON_HTTP_ALLOWED_ORIGINS` | none | Comma-separated browser origins allowed to connect to `--http`; a page from any other site is refused |
 | `MASTODON_DEBUG` | `0` | `1` prints debug lines on stderr |
 
 ## Versions
