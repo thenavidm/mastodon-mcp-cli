@@ -4,8 +4,8 @@
  * Mastodon stores a status as **HTML**, not plain text. What comes back looks
  * like this:
  *
- *   <p>Shipping today <a href="https://navid.me/x/very/long" rel="nofollow">
- *     <span class="invisible">https://</span><span class="ellipsis">navid.me/x/ver</span
+ *   <p>Shipping today <a href="https://example.com/x/very/long" rel="nofollow">
+ *     <span class="invisible">https://</span><span class="ellipsis">example.com/x/ver</span
  *     ><span class="invisible">y/long</span></a> thanks
  *     <span class="h-card"><a href="https://m.example/@alice" class="u-url mention"
  *       >@<span>alice</span></a></span></p>
@@ -13,7 +13,7 @@
  * Handing that to a model as-is is unreadable, and stripping every tag with a
  * regex is worse than it looks: the visible text of a link is deliberately
  * truncated by those `invisible` and `ellipsis` spans, so a stripped status says
- * `navid.me/x/ver` and the real URL is gone. A model that follows it gets a 404.
+ * `example.com/x/ver` and the real URL is gone. A model that follows it gets a 404.
  *
  * So: convert to markdown, take link targets from `href` rather than from the
  * visible text, and rebuild mentions as full `@user@instance` handles.
